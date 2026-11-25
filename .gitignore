@@ -1,0 +1,14 @@
+# chaves e segredos
+.env
+secrets.toml
+*.key
+
+# modelos treinados 
+*.bin
+*.safetensors
+*.pt
+checkpoints/
+
+# py e colab
+__pycache__/
+.ipynb_checkpoints/
