@@ -21,3 +21,6 @@ __pycache__/
 
 # pacote de entrega gerado na etapa 10
 tp2_codigo.zip
+
+# corpus bruto (baixado por src/dados.py, versão fixada por commit)
+data/raw/
