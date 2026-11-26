@@ -1,14 +1,23 @@
 # chaves e segredos
 .env
 secrets.toml
+.streamlit/secrets.toml
 *.key
 
-# modelos treinados 
+# modelos treinados
 *.bin
 *.safetensors
 *.pt
 checkpoints/
+modelos/
+
+# cache de respostas da API (fica no Drive; as previsões e justificativas vão em results/)
+results/cache_maritalk/
 
 # py e colab
 __pycache__/
 .ipynb_checkpoints/
+.venv/
+
+# pacote de entrega gerado na etapa 10
+tp2_codigo.zip
