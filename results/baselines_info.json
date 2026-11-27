@@ -1,0 +1,68 @@
+{
+  "trivial": {
+    "moda_treino": {
+      "c1": 120,
+      "c2": 120,
+      "c3": 120,
+      "c4": 120,
+      "c5": 120
+    }
+  },
+  "tfidf": {
+    "parametros_tfidf": {
+      "ngram_range": [
+        1,
+        2
+      ],
+      "min_df": 2,
+      "max_features": 50000,
+      "sublinear_tf": true
+    },
+    "vocabulario": 50000,
+    "busca_alpha_dev": [
+      {
+        "alpha": 0.01,
+        "qwk_medio_dev": 0.4704855825273186,
+        "mae_medio_dev": 24.243161094224924
+      },
+      {
+        "alpha": 0.03,
+        "qwk_medio_dev": 0.46850184267563666,
+        "mae_medio_dev": 24.178318135764943
+      },
+      {
+        "alpha": 0.1,
+        "qwk_medio_dev": 0.46868583452483276,
+        "mae_medio_dev": 23.87031408308004
+      },
+      {
+        "alpha": 0.3,
+        "qwk_medio_dev": 0.4710400691706428,
+        "mae_medio_dev": 23.148936170212767
+      },
+      {
+        "alpha": 1,
+        "qwk_medio_dev": 0.4492136839699633,
+        "mae_medio_dev": 22.68693009118541
+      },
+      {
+        "alpha": 3,
+        "qwk_medio_dev": 0.38318570207401886,
+        "mae_medio_dev": 23.505572441742654
+      },
+      {
+        "alpha": 10,
+        "qwk_medio_dev": 0.26466952820007306,
+        "mae_medio_dev": 25.596757852077
+      },
+      {
+        "alpha": 30,
+        "qwk_medio_dev": 0.14634025570518366,
+        "mae_medio_dev": 27.785207700101317
+      }
+    ],
+    "alpha_escolhido": 0.3,
+    "seed": 42,
+    "duracao_s": 21.3
+  }
+}
