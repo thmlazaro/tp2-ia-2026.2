@@ -1,0 +1,19 @@
+{
+  "n": 985,
+  "ok": 985,
+  "falhas": 0,
+  "taxa_falha": 0.0,
+  "chamadas_novas": 985,
+  "tokens_entrada": 992549,
+  "tokens_saida": 433188,
+  "custo_chamadas_novas_rs": 13.6265,
+  "custo_estimado_rs": 13.6265,
+  "interrompido_por_limite": false,
+  "modelo": "sabia-4",
+  "versao_prompt": "v1",
+  "temperatura": 0.0,
+  "preco_rs_por_milhao": {
+    "entrada": 5.0,
+    "saida": 20.0
+  }
+}

@@ -118,6 +118,16 @@ def test_lote_registra_falhas_e_custo(monkeypatch):
     assert resumo["custo_estimado_rs"] == pytest.approx((900 * 5 + 300 * 20) / 1e6)
 
 
+def test_limite_de_custo_interrompe_lote(monkeypatch):
+    cli = ClienteFalso([json.dumps(BOA)] * 3)
+    monkeypatch.setattr(maritalk, "criar_cliente", lambda api_key=None: cli)
+    monkeypatch.setattr(maritalk.time, "sleep", lambda s: None)
+    df = pd.DataFrame({"id": list("abc"), "texto": ["t1", "t2", "t3"], "tema": ["x"] * 3})
+    preds, _, falhas, resumo = maritalk.corrigir_lote(df, progresso=False, limite_custo=0.01)
+    assert list(preds["id"]) == ["a"] and len(cli.chamadas) == 1      # 1ª custa ~R$0,0105 > 0,01
+    assert resumo["interrompido_por_limite"] and [f["id"] for f in falhas] == ["b", "c"]
+
+
 def test_sem_chave_da_erro_claro(monkeypatch):
     monkeypatch.delenv("MARITACA_API_KEY", raising=False)
     monkeypatch.setattr(maritalk, "RAIZ", Path("/nao/existe"))

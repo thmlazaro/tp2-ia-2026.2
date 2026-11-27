@@ -210,21 +210,28 @@ def custo(tokens_entrada, tokens_saida):
     return (tokens_entrada * PRECO_ENTRADA + tokens_saida * PRECO_SAIDA) / 1e6
 
 
-def corrigir_lote(df, api_key=None, pausa=0.5, progresso=True, **kw):
+def corrigir_lote(df, api_key=None, pausa=0.5, progresso=True, limite_custo=None, **kw):
     """Corrige todas as redações de df (colunas id, texto, tema).
 
     Devolve (preds, justificativas, falhas, resumo). Pode ser interrompido e repetido:
-    o que já deu certo vem do cache, sem custo.
+    o que já deu certo vem do cache, sem custo. Se limite_custo (R$) for atingido pelas
+    chamadas novas, o lote para e as redações restantes ficam registradas como não corrigidas.
     """
     cliente = None
     linhas, justificativas, falhas = [], [], []
     tok_in = tok_out = novas = 0
+    gasto_novo = 0.0
+    interrompido = False
     it = df.itertuples(index=False)
     if progresso:
         from tqdm.auto import tqdm
         it = tqdm(it, total=len(df), desc="MariTalk")
     for r in it:
         tema = getattr(r, "tema", "") or ""
+        if limite_custo is not None and gasto_novo >= limite_custo:
+            interrompido = True
+            falhas.append({"id": r.id, "erro": f"não executada: limite de custo R$ {limite_custo} atingido"})
+            continue
         try:
             if cliente is None and not caminho_cache(r.texto, tema).exists():
                 cliente = criar_cliente(api_key)
@@ -239,9 +246,11 @@ def corrigir_lote(df, api_key=None, pausa=0.5, progresso=True, **kw):
         tok_out += out["tokens_saida"]
         if not out["do_cache"]:
             novas += 1
+            gasto_novo += custo(out["tokens_entrada"], out["tokens_saida"])
             time.sleep(pausa)
     resumo = {"n": len(df), "ok": len(linhas), "falhas": len(falhas),
               "taxa_falha": len(falhas) / max(len(df), 1), "chamadas_novas": novas,
+              "custo_chamadas_novas_rs": round(gasto_novo, 4), "interrompido_por_limite": interrompido,
               "tokens_entrada": tok_in, "tokens_saida": tok_out,
               "custo_estimado_rs": round(custo(tok_in, tok_out), 4)}
     return pd.DataFrame(linhas, columns=["id"] + C + ["total"]), justificativas, falhas, resumo
@@ -258,3 +267,45 @@ def salvar_lote(preds, justificativas, falhas, resumo, pasta=RAIZ / "results"):
         json.dumps({**resumo, "modelo": MODELO, "versao_prompt": VERSAO_PROMPT, "temperatura": TEMPERATURA,
                     "preco_rs_por_milhao": {"entrada": PRECO_ENTRADA, "saida": PRECO_SAIDA}},
                    indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+# ============================================================ linha de comando
+def main(argv=None):
+    """python src/maritalk.py --dados data/test.csv --limite-custo 16"""
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Corrige um conjunto de redações com o Sabiá-4.")
+    ap.add_argument("--dados", default=str(RAIZ / "data" / "test.csv"))
+    ap.add_argument("--ids", default=None, help="CSV com coluna id (subconjunto)")
+    ap.add_argument("--limite-custo", type=float, default=None, help="para ao gastar R$ X em chamadas novas")
+    ap.add_argument("--sem-json-mode", action="store_true")
+    a = ap.parse_args(argv)
+
+    df = pd.read_csv(a.dados)
+    if a.ids:
+        df = df[df["id"].isin(set(pd.read_csv(a.ids)["id"]))]
+    print(f"{len(df)} redações | modelo {MODELO} | prompt {VERSAO_PROMPT} | limite R$ {a.limite_custo}", flush=True)
+    partes = []
+    for i in range(0, len(df), 50):               # blocos de 50 só para mostrar o progresso
+        parte = corrigir_lote(df.iloc[i:i + 50], progresso=False, json_mode=not a.sem_json_mode,
+                              limite_custo=None if a.limite_custo is None else
+                              a.limite_custo - sum(p[3]["custo_chamadas_novas_rs"] for p in partes))
+        partes.append(parte)
+        feitos = sum(len(p[0]) for p in partes)
+        gasto = sum(p[3]["custo_chamadas_novas_rs"] for p in partes)
+        print(f"{min(i + 50, len(df))}/{len(df)} | ok {feitos} | falhas {sum(len(p[2]) for p in partes)} "
+              f"| gasto novo R$ {gasto:.2f}", flush=True)
+    preds = pd.concat([p[0] for p in partes], ignore_index=True)
+    just = [j for p in partes for j in p[1]]
+    falhas = [f for p in partes for f in p[2]]
+    resumo = {"n": len(df), "ok": len(preds), "falhas": len(falhas), "taxa_falha": len(falhas) / max(len(df), 1)}
+    for k in ["chamadas_novas", "tokens_entrada", "tokens_saida", "custo_chamadas_novas_rs"]:
+        resumo[k] = sum(p[3][k] for p in partes)
+    resumo["custo_estimado_rs"] = round(custo(resumo["tokens_entrada"], resumo["tokens_saida"]), 4)
+    resumo["interrompido_por_limite"] = any(p[3]["interrompido_por_limite"] for p in partes)
+    salvar_lote(preds, just, falhas, resumo)
+    print(json.dumps(resumo, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

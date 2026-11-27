@@ -151,6 +151,8 @@ def graficos(tabela, juntados, pasta):
 
     # 3) Matriz de confusão da competência mais difícil (menor QWK médio entre os modelos)
     dificil = piv.mean(axis=1).idxmin()
+    for antiga in pasta.glob("confusao_*.png"):     # a competência mais difícil pode mudar
+        antiga.unlink()
     fig, axes = plt.subplots(1, len(modelos), figsize=(3.8 * len(modelos), 3.7), squeeze=False)
     for ax, mo in zip(axes[0], modelos):
         m = juntados[mo]
